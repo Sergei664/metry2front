@@ -1,0 +1,25 @@
+th .v-label, .theme--light.v-data-table > .v-data-table__wrapper > table > thead > tr:last-child > th, th .v-select__selection--comma{
+    font-size: 14px;
+}
+th .v-text-field.v-input--dense {
+    padding-top: 8px;
+}
+th .v-text-field.v-input--dense:not(.v-text-field--outlined) input {
+    padding: 8px 0 8px;
+}
+.v-menu__content .v-list--dense .v-subheader {
+    font-size: 0.8125rem;
+    font-weight: 800;
+    color: rgb(0 0 0);
+    border-bottom: thin solid rgba(0, 0, 0, 0.12);
+}
+.theme--light.v-list-item:not(.v-list-item--active):not(.v-list-item--disabled){
+    border-bottom: thin solid rgba(0, 0, 0, 0.12);
+}
+.v-subheader.house_name{
+    display: inline-flex;
+}
+.logo{
+    display: block;
+    padding: 20px;
+}
