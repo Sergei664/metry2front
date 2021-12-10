@@ -287,6 +287,43 @@ const actions = {
             return err;
         }
     },
+    GET_IPU_LIST_DATA: async (context, payload) => {
+        try {
+            const req = querystring.stringify(payload);
+            let {data} = await axios.get('http://metryobject.localhost:8701/ipu/list-data?' + req);
+            return data;
+        } catch (err) {
+            return err;
+        }
+    },
+    GET_IPU: async (context, payload) => {
+        try {
+            const req = querystring.stringify(payload);
+            let {data} = await axios.get('http://metryobject.localhost:8701/ipu/view?' + req);
+            return data;
+        } catch (err) {
+            return err;
+        }
+    },
+    GET_IPU_DATA: async (context, payload) => {
+        try {
+            const req = querystring.stringify(payload);
+            let {data} = await axios.get('http://metryobject.localhost:8701/ipu/view-data?' + req);
+            return data;
+        } catch (err) {
+            return err;
+        }
+    },
+    SCHET_ADD: async (context, payload) => {
+        const req = querystring.stringify(payload);
+        let {data} = await axios.post('http://metryobject.localhost:8701/ipu/add', req, config);
+        return data;
+    },
+    SCHET_DATA_ADD: async (context, payload) => {
+        const req = querystring.stringify(payload);
+        let {data} = await axios.post('http://metryobject.localhost:8701/ipu/add-data', req, config);
+        return data;
+    },
 
 }
 

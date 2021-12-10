@@ -39,12 +39,17 @@
                 <v-date-picker width="290" type="month" v-model="dateM" @change="changeDate" no-title @input="menu = false"></v-date-picker>
               </v-menu>
             </v-col>
-
+            <v-col cols="3"></v-col>
+            <v-col cols="3" align="right">
+              <v-btn color="primary" @click="dialogAddSchetData=true">Добавить показания</v-btn>
+            </v-col>
           </v-row>
           <template>
             <v-data-table
                 :headers="headers"
                 class="elevation-1"
+                :items="schetchikData"
+                @click:row="onClickSchetDataUpdate"
             >
               <template v-slot:body.prepend>
                 <tr>
@@ -54,7 +59,7 @@
                         v-model="NumFlat"
                     ></v-text-field>
                   </td>
-                  <td colspan="8"></td>
+                  <td colspan="9"></td>
                 </tr>
               </template>
             </v-data-table>
@@ -75,7 +80,7 @@
             <v-col cols="6" >
             </v-col>
             <v-col cols="3" align="right">
-              <v-btn color="primary" @click="dialogAddSchet=true">Добавить счётчик</v-btn>
+              <v-btn color="primary" @click="resetAddSchet">Добавить счётчик</v-btn>
             </v-col>
           </v-row>
           <template>
@@ -83,6 +88,11 @@
                 :headers="headersShet"
                 class="elevation-1"
                 :items="schetchiks"
+                :footer-props="{
+                  'items-per-page-options': [20, 50, 100, 200, 300]
+                }"
+                :items-per-page="20"
+                @click:row="onClickSchetUpdate"
             >
               <template v-slot:body.prepend>
                 <tr>
@@ -92,7 +102,7 @@
                         v-model="NumFlat"
                     ></v-text-field>
                   </td>
-                  <td colspan="8"></td>
+                  <td colspan="9"></td>
                 </tr>
               </template>
             </v-data-table>
@@ -247,7 +257,7 @@
               color="primary"
               @click="AddSchet"
           >
-            Добавить
+            Сохранить
           </v-btn>
           <v-spacer></v-spacer>
           <v-btn
@@ -260,6 +270,120 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog
+        v-model="dialogAddSchetData"
+        max-width="600"
+    >
+      <v-card>
+        <v-card-title class="text-h5 text-md-center">
+          Показания счётчиков
+          <v-spacer></v-spacer>
+          <v-btn
+              icon
+              @click="dialogAddSchetData = false"
+          >
+            <v-icon color="primary">mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-card-text>
+          <v-row>
+            <v-col cols="6">
+              <v-select
+                  :items="HouseItem"
+                  v-model="IdHouse"
+                  label="Объект"
+                  @input="changeFilterHouse"
+                  dense
+              ></v-select>
+              <v-menu
+                  ref="menu4"
+                  v-model="menu4"
+                  :close-on-content-click="false"
+                  transition="scale-transition"
+                  offset-y
+                  class="mx-auto"
+              >
+                <template #activator="{ on, attrs }">
+                  <v-text-field
+                      v-model="dateMonth"
+                      persistent-hint
+                      v-bind="attrs"
+                      width="290"
+                      label="Расчетный период"
+                      v-on="on"
+                      :dense="true"
+                  ></v-text-field>
+                </template>
+                <v-date-picker width="290" type="month" v-model="dateM" @change="changeSchetData" no-title @input="menu4 = false;"></v-date-picker>
+              </v-menu>
+              <v-text-field
+                  v-show="SchHv2!='-'"
+                  label="ХВ2"
+                  v-model="SchHv2"
+              ></v-text-field>
+              <v-text-field
+                  v-show="SchGv2!='-'"
+                  label="ГВ2"
+                  v-model="SchGv2"
+              ></v-text-field>
+              <v-text-field
+                  v-show="SchEnerg!='-'"
+                  label="Электроэнергия"
+                  v-model="SchEnerg"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="6">
+              <v-select
+                  :items="FlatItem"
+                  v-model="IdFlat"
+                  label="Помещение"
+                  @input="changeSchetData"
+                  dense
+              ></v-select>
+              <v-text-field
+                  v-show="SchHv1!='-'"
+                  label="ХВ1"
+                  v-model="SchHv1"
+              ></v-text-field>
+              <v-text-field
+                  v-show="SchGv1!='-'"
+                  label="ГВ1"
+                  v-model="SchGv1"
+              ></v-text-field>
+              <v-text-field
+                  v-show="SchGaz!='-'"
+                  label="ГAЗ"
+                  v-model="SchGaz"
+              ></v-text-field>
+              <v-text-field
+                  v-show="SchОt!='-'"
+                  label="Отопление"
+                  v-model="SchОt"
+              ></v-text-field>
+            </v-col>
+
+          </v-row>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn
+              color="primary"
+              @click="AddSchetData"
+          >
+            Сохранить
+          </v-btn>
+          <v-spacer></v-spacer>
+          <v-btn
+              color="primary"
+              text
+              @click="dialogAddSchetData = false"
+          >
+            Отмена
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </div>
 </template>
 
@@ -272,20 +396,25 @@ export default {
     }).catch(err => {
       console.warn(err);
     });
-    this.$store.dispatch('GET_OBJECT_LIST', {IdTsj: 0,IsDeleted: 0}).then(response => {
+    this.$store.dispatch('GET_OBJECT_LIST', {IdTsj: 0, IsDeleted: 0}).then(response => {
       this.object = response.data;
       this.IdHouse = this.object[0].IdHouse;
     }).catch(err => {
       console.warn(err);
     });
 
-    this.$store.dispatch('GET_FLAT_LIST', {IdHouse:1}).then(() => {
+    this.$store.dispatch('GET_FLAT_LIST', {IdHouse: 1}).then(() => {
 
     }).catch(err => {
       console.warn(err);
     });
-    this.$store.dispatch('GET_IPU_LIST', {IdHouse:1}).then(response => {
+    this.$store.dispatch('GET_IPU_LIST', {IdHouse: 1}).then(response => {
       this.schetchiks = response.data;
+    }).catch(err => {
+      console.warn(err);
+    });
+    this.$store.dispatch('GET_IPU_LIST_DATA', {IdHouse: 1, dateMonth: this.dateMonth}).then(response => {
+      this.schetchikData = response.data;
     }).catch(err => {
       console.warn(err);
     });
@@ -301,38 +430,40 @@ export default {
     return {
       dialogAddSchet: false,
       dialogSucces: false,
+      dialogAddSchetData: false,
       dialogSuccesText: '',
       menu: false,
       menu2: false,
       menu3: false,
+      menu4: false,
       dateM: '',
       dateMonth: dateMonth,
-      datePlomb:'',
-      dateinstall:'',
-      tsg:[],
-      object:[],
-      IdHouse:'',
-      NumFlat:'',
-      IdFlat:'',
-      TypeSchetchik:'',
-      NameSchetch:'',
-      Marka:'',
-      Model:'',
-      NumSchetchik:'',
-      NumPlomba:'',
-      DatePlombZavod:'',
-      DateInstall:'',
-      VerifInterval:'',
-      VerifIntervalItem:[1,2,3,4,5,6,7,8,9,10],
-      IsActive:1,
-      TypeSchetchikItem:[
-        {value:0,text:'ХВ'},
-        {value:1,text:'ГВ'},
-        {value:2,text:'ГАЗ'},
-        {value:3,text:'ЭЛЕКТРОЭНЕРГИЯ'},
-        {value:4,text:'ОТОПЛЕНИЕ'},
+      datePlomb: '',
+      dateinstall: '',
+      tsg: [],
+      object: [],
+      IdHouse: '',
+      NumFlat: '',
+      IdFlat: '',
+      TypeSchetchik: '',
+      NameSchetch: '',
+      Marka: '',
+      Model: '',
+      NumSchetchik: '',
+      NumPlomba: '',
+      DatePlombZavod: '',
+      DateInstall: '',
+      VerifInterval: '',
+      VerifIntervalItem: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      IsActive: 1,
+      TypeSchetchikItem: [
+        {value: 0, text: 'ХВ'},
+        {value: 1, text: 'ГВ'},
+        {value: 2, text: 'ГАЗ'},
+        {value: 3, text: 'ЭЛЕКТРОЭНЕРГИЯ'},
+        {value: 4, text: 'ОТОПЛЕНИЕ'},
       ],
-      FirstPokazan:'',
+      FirstPokazan: '',
       headers: [
         {
           text: 'Номер помещения',
@@ -343,14 +474,15 @@ export default {
             return value.toString().indexOf(this.NumFlat) !== -1
           },
         },
-        { text: 'ХВ1', value: 'HV1' },
-        { text: 'ХВ2', value: 'HV2' },
-        { text: 'ГВ1', value: 'GV1' },
-        { text: 'ГВ2', value: 'GV2' },
-        { text: 'ГАЗ', value: 'GAZ' },
-        { text: 'ЭЛЕКТРОЭНЕРГИЯ', value: 'EE' },
-        { text: 'ОТОПЛЕНИЕ', value: 'OTOP' },
-        { text: 'ИСТОЧНИК', value: 'istochnik' },
+        {text: 'ХВ1', value: 'HV1'},
+        {text: 'ХВ2', value: 'HV2'},
+        {text: 'ГВ1', value: 'GV1'},
+        {text: 'ГВ2', value: 'GV2'},
+        {text: 'ГАЗ', value: 'GAZ'},
+        {text: 'ЭЛЕКТРОЭНЕРГИЯ', value: 'EE'},
+        {text: 'ОТОПЛЕНИЕ', value: 'OTOP'},
+        {text: 'Дата внесения', value: 'DateIn'},
+        {text: 'ИСТОЧНИК', value: 'istochnik'},
       ],
       headersShet: [
         {
@@ -362,37 +494,47 @@ export default {
             return value.toString().indexOf(this.NumFlat) !== -1
           },
         },
-        { text: 'ТИП СЧЕТЧИКА', value: 'TypeSchetchik' },
-        { text: '№ СЧЕТЧИКА', value: 'NumSchetchik' },
-        { text: 'ДАТА УСТАНОВКИ', value: 'DateInstall' },
-        { text: '№ ПЛОМБЫ', value: 'NumPlomba' },
-        { text: 'ПОСЛЕДНЯЯ ПОВЕРКА ДАТА', value: 'DatePoverkaSchet' },
-        { text: 'ПОСЛЕДНЯЯ ПОВЕРКА ПОКАЗАНИЯ', value: 'DatePoverkaPokaz' },
-        { text: 'ДАТА СЛЕДУЮЩЕЙ ПОВЕРКИ', value: 'SrokPoverki' },
+        {text: 'ТИП СЧЕТЧИКА', value: 'TypeSchetchik'},
+        {text: '№ СЧЕТЧИКА', value: 'NumSchetchik'},
+        {text: 'ДАТА УСТАНОВКИ', value: 'DateInstall'},
+        {text: '№ ПЛОМБЫ', value: 'NumPlomba'},
+        {text: 'ПОСЛЕДНЯЯ ПОВЕРКА ДАТА', value: 'DatePoverkaSchet'},
+        {text: 'ПОСЛЕДНЯЯ ПОВЕРКА ПОКАЗАНИЯ', value: 'DatePoverkaPokaz'},
+        {text: 'ДАТА СЛЕДУЮЩЕЙ ПОВЕРКИ', value: 'SrokPoverki'},
       ],
-      schetchiks:[],
+      schetchiks: [],
+      schetchikData: [],
+      IdSchechData: '',
+      SchHv1: '-',
+      SchHv2: '-',
+      SchGv1: '-',
+      SchGv2: '-',
+      SchGaz: '-',
+      SchEnerg: '-',
+      SchОt: '-',
+      ID: '',
     }
   },
   computed: {
-    HouseItem(){
+    HouseItem() {
       if (this.object && this.tsg) {
         let ret = [];
         this.tsg.forEach(itemtsg => {
           ret.push({header: itemtsg.Name});
           this.object.forEach(itemobject => {
-            if(itemtsg.IdTsj == itemobject.IdTsj){
-              ret.push({text: itemobject.adress,value: itemobject.IdHouse});
+            if (itemtsg.IdTsj == itemobject.IdTsj) {
+              ret.push({text: itemobject.adress, value: itemobject.IdHouse});
             }
           });
         });
         return ret;
-      }else{
+      } else {
         return [];
       }
     },
-    FlatItem(){
+    FlatItem() {
       let ret = [];
-      if(this.$store.getters.FLAT_LIST){
+      if (this.$store.getters.FLAT_LIST) {
         let flat = this.$store.getters.FLAT_LIST.data;
         flat.forEach(item => {
           ret.push({text: item.NumFlat, value: item.IdFlat});
@@ -407,24 +549,180 @@ export default {
       const [day, month, year] = date.split('.');
       return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     },
-    AddSchet(){
+    AddSchet() {
+      this.$store.dispatch('SCHET_ADD', {
 
-    },
-    changeFilterHouse(){
-      this.IdFlat = '';
-      this.$store.dispatch('GET_FLAT_LIST', {IdHouse:this.IdHouse}).then(() => {
+        ID: this.ID,
+        IdFlat: this.IdFlat,
+        TypeSchetchik: this.TypeSchetchik,
+        NameSchetch: this.NameSchetch,
+        Marka: this.Marka,
+        Model: this.Model,
+        NumSchetchik: this.NumSchetchik,
+        NumPlomba: this.NumPlomba,
+        DatePlombZavod: this.DatePlombZavod,
+        DateInstall: this.DateInstall,
+        VerifInterval: this.VerifInterval,
+        FirstPokazan: this.FirstPokazan,
+        IsActive: this.IsActive,
+
+      }).then(response => {
+        if (response.status == 1) {
+
+          this.dialogSuccesText = response.message;
+          this.dialogAddSchet = false;
+          this.dialogSucces = true;
+          this.$store.dispatch('GET_IPU_LIST', {IdHouse: this.IdHouse}).then(response => {
+            this.schetchiks = response.data;
+          }).catch(err => {
+            console.warn(err);
+          });
+        } else {
+          this.dialogSuccesText = response.message;
+          this.dialogSucces = true;
+        }
       }).catch(err => {
         console.warn(err);
       });
-      this.$store.dispatch('GET_IPU_LIST', {IdHouse:this.IdHouse}).then(response => {
+    },
+    AddSchetData() {
+      this.$store.dispatch('SCHET_DATA_ADD', {
+
+        IdSchechData: this.IdSchechData,
+        IdFlat: this.IdFlat,
+        dateMonth: this.dateMonth,
+        SchHv1: this.SchHv1,
+        SchHv2: this.SchHv2,
+        SchGv1: this.SchGv1,
+        SchGv2: this.SchGv2,
+        SchGaz: this.SchGaz,
+        SchEnerg: this.SchEnerg,
+        SchОt: this.SchОt,
+
+      }).then(response => {
+        if (response.status == 1) {
+
+          this.dialogSuccesText = response.message;
+          this.dialogAddSchetData = false;
+          this.dialogSucces = true;
+          this.$store.dispatch('GET_IPU_LIST_DATA', {
+            IdHouse: this.IdHouse,
+            dateMonth: this.dateMonth
+          }).then(response => {
+            this.schetchikData = response.data;
+          }).catch(err => {
+            console.warn(err);
+          });
+        } else {
+          this.dialogSuccesText = response.message;
+          this.dialogSucces = true;
+        }
+      }).catch(err => {
+        console.warn(err);
+      });
+    },
+
+    changeFilterHouse() {
+      this.IdFlat = '';
+      this.$store.dispatch('GET_FLAT_LIST', {IdHouse: this.IdHouse}).then(() => {
+      }).catch(err => {
+        console.warn(err);
+      });
+      this.$store.dispatch('GET_IPU_LIST', {IdHouse: this.IdHouse}).then(response => {
         this.schetchiks = response.data;
+      }).catch(err => {
+        console.warn(err);
+      });
+      this.$store.dispatch('GET_IPU_LIST_DATA', {IdHouse: this.IdHouse, dateMonth: this.dateMonth}).then(response => {
+        this.schetchikData = response.data;
+      }).catch(err => {
+        console.warn(err);
+      });
+    },
+    onClickSchetUpdate(item) {
+      this.$store.dispatch('GET_IPU', {id: item.ID}).then(response => {
+        this.ID = response.data.ID;
+        this.IdFlat = response.data.IdFlat;
+        this.TypeSchetchik = response.data.TypeSchetchik;
+        this.NameSchetch = response.data.NameSchetch;
+        this.Marka = response.data.Marka;
+        this.Model = response.data.Model;
+        this.NumSchetchik = response.data.NumSchetchik;
+        this.NumPlomba = response.data.NumPlomba;
+        this.DatePlombZavod = response.data.DatePlombZavod;
+        this.DateInstall = response.data.DateInstall;
+        this.VerifInterval = response.data.VerifInterval;
+        this.FirstPokazan = response.data.FirstPokazan;
+        this.IsActive = response.data.IsActive;
+        this.dialogAddSchet = true;
+      }).catch(err => {
+        console.warn(err);
+      });
+    },
+    onClickSchetDataUpdate(item) {
+      this.IdFlat = item.IdFlat;
+      this.$store.dispatch('GET_IPU_DATA', {IdFlat: this.IdFlat, dateMonth: this.dateMonth}).then(response => {
+
+        this.IdSchechData = response.data.IdSchechData;
+        this.SchHv1 = response.data.SchHv1;
+        this.SchHv2 = response.data.SchHv2;
+        this.SchGv1 = response.data.SchGv1;
+        this.SchGv2 = response.data.SchGv2;
+        this.SchGaz = response.data.SchGaz;
+        this.SchEnerg = response.data.SchEnerg;
+        this.SchОt = response.data.SchОt;
+        this.dialogAddSchetData = true;
+      }).catch(err => {
+        console.warn(err);
+      });
+    },
+    resetAddSchet() {
+      this.ID = '';
+      this.IdFlat = '';
+      this.TypeSchetchik = '';
+      this.NameSchetch = '';
+      this.Marka = '';
+      this.Model = '';
+      this.NumSchetchik = '';
+      this.NumPlomba = '';
+      this.DatePlombZavod = '';
+      this.DateInstall = '';
+      this.VerifInterval = '';
+      this.FirstPokazan = '';
+      this.IsActive = '';
+      this.dialogAddSchet = true;
+    },
+    changeSchetData() {
+      if (this.dateM) {
+        let date = new Date(this.dateM);
+        let options = {
+          year: 'numeric',
+          month: 'long',
+        };
+        this.dateMonth = date.toLocaleString("ru", options);
+      }
+      this.$store.dispatch('GET_IPU_DATA', {IdFlat: this.IdFlat, dateMonth: this.dateMonth}).then(response => {
+
+        this.IdSchechData = response.data.IdSchechData;
+        this.SchHv1 = response.data.SchHv1;
+        this.SchHv2 = response.data.SchHv2;
+        this.SchGv1 = response.data.SchGv1;
+        this.SchGv2 = response.data.SchGv2;
+        this.SchGaz = response.data.SchGaz;
+        this.SchEnerg = response.data.SchEnerg;
+        this.SchОt = response.data.SchОt;
+      }).catch(err => {
+        console.warn(err);
+      });
+      this.$store.dispatch('GET_IPU_LIST_DATA', {IdHouse: this.IdHouse, dateMonth: this.dateMonth}).then(response => {
+        this.schetchikData = response.data;
       }).catch(err => {
         console.warn(err);
       });
     },
     changeDate() {
 
-      if(this.dateinstall) {
+      if (this.dateinstall) {
         let date = new Date(this.dateinstall);
         let month = date.getMonth() + 1;
 
@@ -437,7 +735,7 @@ export default {
         }
         this.DateInstall = day + '.' + month + '.' + date.getFullYear();
       }
-      if(this.datePlomb) {
+      if (this.datePlomb) {
         let date = new Date(this.datePlomb);
         let month = date.getMonth() + 1;
 
@@ -450,16 +748,21 @@ export default {
         }
         this.DatePlombZavod = day + '.' + month + '.' + date.getFullYear();
       }
-      if(this.dateM) {
+      if (this.dateM) {
         let date = new Date(this.dateM);
         let options = {
           year: 'numeric',
           month: 'long',
         };
         this.dateMonth = date.toLocaleString("ru", options);
+        this.$store.dispatch('GET_IPU_LIST_DATA', {IdHouse: this.IdHouse, dateMonth: this.dateMonth}).then(response => {
+          this.schetchikData = response.data;
+        }).catch(err => {
+          console.warn(err);
+        });
       }
     },
-  },
+  }
 }
 </script>
 
